@@ -7,7 +7,9 @@ platform = teensy
 board = teensy31
 framework = arduino
 monitor_speed = 115200
-src_filter = -<main.cpp>  +<../lib/car_bldc/examples/main.cpp> 
+platform_packages = toolchain-gccarmnoneeabi@1.90201.191206
+build_unflags = -std=gnu++14
+src_filter = -<main.cpp>  +<../lib/car_bldc/examples/main_bldc.cpp> 
 lib_deps =
      SPI     
      # RECOMMENDED
