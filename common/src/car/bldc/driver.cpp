@@ -27,9 +27,20 @@ void Driver::init_inhibit(Motor *motor){
     pinMode(motor->pins_INH[0], OUTPUT);
     pinMode(motor->pins_INH[1], OUTPUT);
     pinMode(motor->pins_INH[2], OUTPUT);
+}
+
+void Driver::couple(Motor *motor){
     digitalWriteFast(motor->pins_INH[0], HIGH);
     digitalWriteFast(motor->pins_INH[1], HIGH);
     digitalWriteFast(motor->pins_INH[2], HIGH);
+    motor->coupled = true;
+}
+
+void Driver::decouple(Motor *motor){
+    digitalWriteFast(motor->pins_INH[0], LOW);
+    digitalWriteFast(motor->pins_INH[1], LOW);
+    digitalWriteFast(motor->pins_INH[2], LOW);
+    motor->coupled = false;
 }
 
 void Driver::init_timer(){

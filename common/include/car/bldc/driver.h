@@ -14,6 +14,8 @@ class Driver {
         Driver();
         void init(Motor *motor0, Motor *motor1 = NULL);   
         void update_PWM(Motor *motor, float power = 1.0);    
+        void couple(Motor *motor);
+        void decouple(Motor *motor);
 
     protected:
         void init_inhibit(Motor *motor);
