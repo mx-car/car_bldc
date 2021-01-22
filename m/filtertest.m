@@ -8,7 +8,7 @@ t = linspace(0,1,n)
 plot(t,x, 'b')
 hold on
 
-[f, fe, fev] = derivative_filter(x)
+[f, fe, fev] = encoder_filter(x)
 plot(t,f, 'og');
 plot(t,fe, 'm');
 plot(t,fev, 'r');

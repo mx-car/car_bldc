@@ -1,4 +1,4 @@
-function [f ferror1 ferror1_var ferror2 ] = derivative_filter(x, threshold_error, threshold_var)
+function [f ferror1 ferror1_var ferror2 ] = encoder_filter(x, threshold_error, threshold_var)
 % filters a signal by replacing single spikes with a predicted value
 % a error variance is computed to juge if a predicted value is useful.
 %   x               = signal input vector
