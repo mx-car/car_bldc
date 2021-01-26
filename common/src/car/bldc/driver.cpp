@@ -18,8 +18,12 @@ Driver::Driver()
 void Driver::init(Motor *motor0, Motor *motor1){
     motor0_ = motor0;
     motor1_ = motor1;
-    if(motor0_) init_inhibit(motor0_);
-    if(motor1_) init_inhibit(motor1_);
+    if(motor0_) {
+        init_inhibit(motor0_);
+    }
+    if(motor1_) {
+        init_inhibit(motor1_);
+    }
     init_timer();
 }
 
@@ -27,6 +31,10 @@ void Driver::init_inhibit(Motor *motor){
     pinMode(motor->pins_INH[0], OUTPUT);
     pinMode(motor->pins_INH[1], OUTPUT);
     pinMode(motor->pins_INH[2], OUTPUT);
+    motor->timer_register[0] = get_register_pwm(motor->pins_PWN[0]);
+    motor->timer_register[1] = get_register_pwm(motor->pins_PWN[1]);
+    motor->timer_register[2] = get_register_pwm(motor->pins_PWN[2]);
+
 }
 
 void Driver::couple(Motor *motor){
@@ -41,6 +49,16 @@ void Driver::decouple(Motor *motor){
     digitalWriteFast(motor->pins_INH[1], LOW);
     digitalWriteFast(motor->pins_INH[2], LOW);
     motor->coupled = false;
+}
+
+uint32_t* Driver::get_register_pwm(uint8_t pin){
+    if(pin == 10) return &FTM0_C3V; // Teensy pin 10 -> FTM0_CH3pardom
+    if(pin == 22) return &FTM0_C1V; // Teensy pin 22 (A8) -> FTM0_CH0
+    if(pin == 23) return &FTM0_C0V; // Teensy pin 23 (A9) -> FTM0_CH1
+    if(pin == 5) return &FTM0_C7V;  // Teensy pin 5 -> FTM0_CH7
+    if(pin == 6) return &FTM0_C4V;  // Teensy pin  6 -> FTM0_CH4
+    if(pin == 9) return &FTM0_C2V;  // Teensy pin 9 -> FTM0_CH2
+    return NULL;
 }
 
 void Driver::init_timer(){
@@ -98,17 +116,21 @@ void Driver::init_timer(){
 
 void Driver::update_PWM(Motor *motor, float power) {
 
-    //uint16_t max_count = (1000 * power) * this->timer_max_count / 1000;
-    uint16_t max_count = this->timer_modulo_;
-    uint16_t timer_count[3];
+    uint32_t power_promille = power * 1000.0;
+    uint16_t max_count = power_promille * this->timer_modulo_ / 1000;
+    //uint16_t max_count = this->timer_modulo_;
     for(int i = 0; i < 3; i++){
-        timer_count[i] = motor->target_PWN[i] * max_count; 
+        uint32_t v = motor->target_PWN[i] * max_count;
+        if( v < 150) v = 0;  
+        *motor->timer_register[i] = v; 
     }
+    /*
         FTM0_C3V = timer_count[0];  // Teensy pin 10 -> FTM0_CH3pardom
         FTM0_C1V = timer_count[1];  // Teensy pin 22 (A8) -> FTM0_CH0
         FTM0_C0V = timer_count[2];  // Teensy pin 23 (A9) -> FTM0_CH1
 
-        FTM0_C7V = max_count /2; 
-        FTM0_C4V = max_count /2;
-        FTM0_C2V = max_count /2;
+        FTM0_C7V = this->timer_modulo_ / 2;  // Teensy pin 5 -> FTM0_CH7
+        FTM0_C4V = this->timer_modulo_ / 2;  // Teensy pin  6 -> FTM0_CH4
+        FTM0_C2V = this->timer_modulo_ / 2;  // Teensy pin 9 -> FTM0_CH2
+        */
 }

@@ -20,10 +20,11 @@ class Driver {
     protected:
         void init_inhibit(Motor *motor);
         void init_timer();     
-
+        uint32_t* get_register_pwm(uint8_t pin);
         Motor *motor0_;
         Motor *motor1_;
-        uint16_t *timer_modulo_;
+        uint32_t timer_modulo_;
+
 };
 }
 }

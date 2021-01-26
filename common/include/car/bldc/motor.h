@@ -29,10 +29,13 @@ class Motor {
 
         char info[200];
 
-        double target_PWN[3];
-        double position;
-        double flux_offest;
-        double flux_angle;
+        float target_PWN[3];
+        float position;
+        float flux_offest;
+        float flux_angle;
+        
+        uint32_t* timer_register[3];
+
 };
 
 }
