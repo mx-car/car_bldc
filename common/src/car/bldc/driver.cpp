@@ -51,7 +51,7 @@ void Driver::decouple(Motor *motor){
     motor->coupled = false;
 }
 
-uint32_t* Driver::get_register_pwm(uint8_t pin){
+volatile uint32_t* Driver::get_register_pwm(uint8_t pin){
     if(pin == 10) return &FTM0_C3V; // Teensy pin 10 -> FTM0_CH3pardom
     if(pin == 22) return &FTM0_C1V; // Teensy pin 22 (A8) -> FTM0_CH0
     if(pin == 23) return &FTM0_C0V; // Teensy pin 23 (A9) -> FTM0_CH1
@@ -119,18 +119,7 @@ void Driver::update_PWM(Motor *motor, float power) {
     uint32_t power_promille = power * 1000.0;
     uint16_t max_count = power_promille * this->timer_modulo_ / 1000;
     //uint16_t max_count = this->timer_modulo_;
-    for(int i = 0; i < 3; i++){
-        uint32_t v = motor->target_PWN[i] * max_count;
-        if( v < 150) v = 0;  
-        *motor->timer_register[i] = v; 
-    }
-    /*
-        FTM0_C3V = timer_count[0];  // Teensy pin 10 -> FTM0_CH3pardom
-        FTM0_C1V = timer_count[1];  // Teensy pin 22 (A8) -> FTM0_CH0
-        FTM0_C0V = timer_count[2];  // Teensy pin 23 (A9) -> FTM0_CH1
-
-        FTM0_C7V = this->timer_modulo_ / 2;  // Teensy pin 5 -> FTM0_CH7
-        FTM0_C4V = this->timer_modulo_ / 2;  // Teensy pin  6 -> FTM0_CH4
-        FTM0_C2V = this->timer_modulo_ / 2;  // Teensy pin 9 -> FTM0_CH2
-        */
+    *motor->timer_register[0] = motor->target_PWN[0] * max_count; 
+    *motor->timer_register[1] = motor->target_PWN[1] * max_count; 
+    *motor->timer_register[2] = motor->target_PWN[2] * max_count; 
 }

@@ -9,8 +9,8 @@ namespace car {
 namespace bldc {
 
 class Driver {
-    static const uint32_t PWMFrequency = 20000;
     public:
+        static const uint32_t PWMFrequency = 15000;
         Driver();
         void init(Motor *motor0, Motor *motor1 = NULL);   
         void update_PWM(Motor *motor, float power = 1.0);    
@@ -20,7 +20,7 @@ class Driver {
     protected:
         void init_inhibit(Motor *motor);
         void init_timer();     
-        uint32_t* get_register_pwm(uint8_t pin);
+        volatile uint32_t* get_register_pwm(uint8_t pin);
         Motor *motor0_;
         Motor *motor1_;
         uint32_t timer_modulo_;

@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <array>
+#include <car/math/measurement.h>
+#include <car/math/angle.h>
 
 namespace car {
 namespace bldc {
@@ -30,12 +32,18 @@ class Motor {
         char info[200];
 
         float target_PWN[3];
-        float position;
+        car::math::Measurement<car::math::Angle14Bit> position_delta;
+        car::math::Measurement<car::math::Angle14Bit> position_current;
+        float rpm;
         float flux_offest;
         float flux_angle;
         
-        uint32_t* timer_register[3];
-
+        volatile uint32_t* timer_register[3];
+        void update(const car::math::Measurement<car::math::Angle14Bit> &motor_position){
+            position_delta = motor_position - position_current;
+            position_current = motor_position;
+            rpm = position_delta.value.get_norm() / position_delta.stamp_as_sec();
+        }
 };
 
 }
