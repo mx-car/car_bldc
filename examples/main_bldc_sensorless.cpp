@@ -38,7 +38,7 @@ void loop()
   while (angle > M_TWOPI)
     angle -= M_TWOPI;
   for (int i = 0; i < 3; i++)
-    motor0.target_PWN[i] = cos(angle + M_TWOPI / 3. * (float)i) * 0.5 + 0.5;
+    motor0.target_PWN_[i] = cos(angle + M_TWOPI / 3. * (float)i) * 0.5 + 0.5;
   driver.update_PWM(&motor0, 0.5);
   if (loop_count % 100 == 0)
   {
@@ -51,7 +51,7 @@ void loop()
     for (int i = 0; i < 3; i++)
     {
       Serial.print(", ");
-      Serial.print(motor0.target_PWN[i]);
+      Serial.print(motor0.target_PWN_[i]);
     }
     Serial.println();
   }

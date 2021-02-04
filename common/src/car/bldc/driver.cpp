@@ -10,45 +10,39 @@ using namespace car::bldc;
 
 
 
-Driver::Driver() 
-: motor0_(NULL) 
-, motor1_(NULL)  {
+Driver::Driver()  {
 }
 
 void Driver::init(Motor *motor0, Motor *motor1){
-    motor0_ = motor0;
-    motor1_ = motor1;
-    if(motor0_) {
-        init_inhibit(motor0_);
+    if(motor0) {
+        init_inhibit(motor0);
     }
-    if(motor1_) {
-        init_inhibit(motor1_);
+    if(motor1) {
+        init_inhibit(motor1);
     }
     init_timer();
 }
 
 void Driver::init_inhibit(Motor *motor){
-    pinMode(motor->pins_INH[0], OUTPUT);
-    pinMode(motor->pins_INH[1], OUTPUT);
-    pinMode(motor->pins_INH[2], OUTPUT);
-    motor->timer_register[0] = get_register_pwm(motor->pins_PWN[0]);
-    motor->timer_register[1] = get_register_pwm(motor->pins_PWN[1]);
-    motor->timer_register[2] = get_register_pwm(motor->pins_PWN[2]);
+    pinMode(motor->pins_INH_[0], OUTPUT);
+    pinMode(motor->pins_INH_[1], OUTPUT);
+    pinMode(motor->pins_INH_[2], OUTPUT);
+    motor->pwm_timer_register_[0] = get_register_pwm(motor->pins_PWN_[0]);
+    motor->pwm_timer_register_[1] = get_register_pwm(motor->pins_PWN_[1]);
+    motor->pwm_timer_register_[2] = get_register_pwm(motor->pins_PWN_[2]);
 
 }
 
-void Driver::couple(Motor *motor){
-    digitalWriteFast(motor->pins_INH[0], HIGH);
-    digitalWriteFast(motor->pins_INH[1], HIGH);
-    digitalWriteFast(motor->pins_INH[2], HIGH);
-    motor->coupled = true;
-}
-
-void Driver::decouple(Motor *motor){
-    digitalWriteFast(motor->pins_INH[0], LOW);
-    digitalWriteFast(motor->pins_INH[1], LOW);
-    digitalWriteFast(motor->pins_INH[2], LOW);
-    motor->coupled = false;
+void Driver::couple_pwm(const std::array<uint8_t, 3> &pins_INH, bool on){
+    if(on){
+        digitalWriteFast(pins_INH[0], HIGH);
+        digitalWriteFast(pins_INH[1], HIGH);
+        digitalWriteFast(pins_INH[2], HIGH);
+    } else {
+        digitalWriteFast(pins_INH[0], LOW);
+        digitalWriteFast(pins_INH[1], LOW);
+        digitalWriteFast(pins_INH[2], LOW);
+    }
 }
 
 volatile uint32_t* Driver::get_register_pwm(uint8_t pin){
@@ -114,8 +108,7 @@ void Driver::init_timer(){
     //FTM0_SC = 0b00101000; //CPWM MODE 0x48 EPWM -> 0x68 0110 1000
 }
 
-
-void Driver::update_PWM(volatile uint32_t* timer_register[3], float target[3]){
+void Driver::update_pwm(std::array<volatile uint32_t*, 3>  timer_register, const std::array<float,3> &target){
 
     *timer_register[0] = (target[0] * (float) this->timer_modulo_);  
     *timer_register[1] = (target[1] * (float) this->timer_modulo_);  

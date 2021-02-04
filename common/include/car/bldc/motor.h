@@ -3,103 +3,153 @@
 
 #include <cstdint>
 #include <array>
-#include <car/math/measurement.h>
+#include <car/math/value.h>
 #include <car/math/angle.h>
 #include <functional>
 
-namespace car {
-namespace bldc {
+namespace car
+{
+    namespace bldc
+    {
 
+        class Motor
+        {
+            friend class Driver;
 
-class Motor {
-    private:
-        int16_t nr_of_coils_;                       /// number of coils;
-        int16_t phase_measurement_max_;             /// maximum number of encoder clicks per phase
+        public:
+            /**
+             * Constructor
+             **/
+            Motor(std::array<uint8_t, 3> _pins_INH, std::array<uint8_t, 3> _pins_PWN, std::array<uint8_t, 3> _pins_IS, uint8_t _pin_CS, car::math::Direction encoder_direction)
+                : pins_INH_(_pins_INH), pins_PWN_(_pins_PWN), pins_IS_(_pins_IS), pin_CS_(_pin_CS), encoder_direction_(encoder_direction), target_power_(0)
+            {
+            }
 
-        std::function<void (uint8_t cs, int16_t &value, uint32_t &stamp)> read_encoder; /// function pointer to read moder angle encoder
-        std::function<void (volatile uint32_t* timer_register[3], float target[3])> update_pwm; /// function pointer to set pwm values
-    public:
-        Motor(std::array<uint8_t, 3> _pins_INH, std::array<uint8_t, 3> _pins_PWN, std::array<uint8_t, 3> _pins_IS, uint8_t _pin_CS, car::math::Direction encoder_direction) 
-        : pins_INH(_pins_INH) 
-        , pins_PWN(_pins_PWN)
-        , pins_IS(_pins_IS)
-        , pin_CS(_pin_CS) 
-        , encoder_direction(encoder_direction) 
-        , coupled(false)
-        , target_power(0){
-        }
+            /**
+             * init motor parameters
+             * @param nr_of_coils number of coils;
+             * @param phase_offset phase offset between pwm signal and phase_angle in encoder clicks
+             **/
+            void init(int nr_of_coils, const car::math::AngleDeg &phase_offset, std::function<void(uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder, std::function<void(std::array<volatile uint32_t *, 3>, const std::array<float, 3> &)> fnc_update_pwm, std::function<void(const std::array<uint8_t, 3> &, bool)> fnc_couple_pwm)
+            {
+                nr_of_coils_ = nr_of_coils;
+                phase_offset_ = phase_offset;
+                phase_offset_.normalize();
+                fnc_read_encoder_ = fnc_read_encoder;
+                fnc_update_pwm_ = fnc_update_pwm;
+                fnc_couple_pwm_ = fnc_couple_pwm;
+                phase_measurement_max_ = car::math::Angle14Bit::max() / nr_of_coils_;
+            }
 
-        /**
-        * init motor parameters
-        * @param nr_of_coils number of coils;
-        * @param phase_offset phase offset between pwm signal and phase_angle in encoder clicks
-        **/
-        void init(int nr_of_coils, const car::math::AngleDeg &phase_offset, std::function<void (uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder, std::function<void (volatile uint32_t* timer_register[3], float target[3])>  fnc_update_pwm){
-            nr_of_coils_ = nr_of_coils;
-            phase_offset_ = phase_offset;
-            phase_offset_.normalize();
-            read_encoder = fnc_read_encoder;
-            update_pwm = fnc_update_pwm;
-            phase_measurement_max_ = car::math::Angle14Bit::max() / nr_of_coils_;
-        }
+            float rps() const
+            {
+                return rps_control_.value;
+            }
 
-        std::array<uint8_t, 3> pins_INH;
-        std::array<uint8_t, 3> pins_PWN;
-        std::array<uint8_t, 3> pins_IS;
-        uint8_t pin_CS;
-        car::math::Direction encoder_direction;
-        bool coupled;  /// on true H-Bridges are enabled 
-        float target_power;
+            void rps(car::math::Value<float> &speed) const
+            {
+                speed = rps_control_;
+            }
 
-        float target_PWN[3];
-        car::math::Measurement<car::math::Angle14Bit> measurement; // encoder measurement
-        car::math::Measurement<car::math::Angle14Bit> position_control;
-        car::math::Measurement<car::math::Angle14Bit> position_delta;
-        car::math::AngleDeg phase_angle;
-        car::math::AngleDeg pwm_angle;
-        car::math::AngleDeg phase_offset_;          /// phase offset between pwm signal and phase_angle in encoder clicks
-        float rpm;
-        
-        volatile uint32_t* timer_register[3];
-        /**
-         * function to update wheel state
-         **/
-        void update(){
-            read_encoder(pin_CS, measurement.value(), measurement.stamp);      // read angle encoder 
-            /// fix encoder counting direction
-            if(encoder_direction == car::math::Direction::COUNTERCLOCKWISE) measurement.value() = measurement.value.max() - measurement.value();
+            uint8_t pin_encoder_cs() const
+            {
+                return pin_CS_;
+            }
 
+            const std::array<uint8_t, 3> &pin_inhibitor() const
+            {
+                return pins_INH_;
+            }
 
-            /// compute encoder angle per coil    
-            int16_t phase_measurement = measurement.value() % phase_measurement_max_;
-            phase_angle.set(phase_measurement * phase_angle.max() / phase_measurement_max_);
-            phase_angle.normalize();
+            void set_power(float power)
+            {
+                target_power_ = power;
+            }
 
-            /// fix flux offest
-            pwm_angle = phase_angle - phase_offset_;
-            pwm_angle.normalize();
+            /**
+             * function to set sinoid pwm angle
+             * @param pwm_angle
+             **/
+            void set_pwm(car::math::AngleDeg &pwm_angle)
+            {
+                std::array<float, 3> target_PWN;
+                pwm_angle.normalize();
 
-            target_PWN[0] = (pwm_angle +   0).get_cos() * 0.5 + 0.5 * target_power;
-            target_PWN[1] = (pwm_angle + 120).get_cos() * 0.5 + 0.5 * target_power;
-            target_PWN[2] = (pwm_angle + 240).get_cos() * 0.5 + 0.5 * target_power;
+                target_PWN[0] = (pwm_angle + 0).get_cos() * 0.5 + 0.5 * fabs(target_power_);
+                target_PWN[1] = (pwm_angle + 120).get_cos() * 0.5 + 0.5 * fabs(target_power_);
+                target_PWN[2] = (pwm_angle + 240).get_cos() * 0.5 + 0.5 * fabs(target_power_);
 
+                /// compute delta since last update
+                fnc_update_pwm_(pwm_timer_register_, target_PWN);
+            }
 
-            /// compute delta since last update  
-            update_pwm(timer_register, target_PWN);
-        }
-        /**
-         * function to update wheel state
-         **/
-        void control(){
-            /// compute delta since last update  
-            position_delta.stamp = measurement.stamp - position_control.stamp;
-            position_delta.value = car::math::Angle14Bit::difference(measurement.value, position_control.value);
-            position_control = measurement;
-            rpm = position_delta.value.get_norm() / position_delta.stamp_as_sec();
-        }
-    
-};
+            /**
+             * function to update the pwm for a space vector modulation
+             * it uses set_pwm;
+             * @see 
+             **/
+            void update_pwm()
+            {
+                fnc_read_encoder_(pin_CS_, measurement_.value(), measurement_.stamp); // read angle encoder
+                /// fix encoder counting direction
+                if (encoder_direction_ == car::math::Direction::COUNTERCLOCKWISE)
+                    measurement_.value() = measurement_.value.max() - measurement_.value();
 
-}
-}
+                /// compute encoder angle per coil
+                int16_t phase_measurement = measurement_.value() % phase_measurement_max_;
+                car::math::AngleDeg phase_angle(phase_measurement * phase_angle.max() / phase_measurement_max_);
+                phase_angle.normalize();
+
+                /// fix flux offest
+                car::math::AngleDeg pwm_angle = phase_angle - phase_offset_;
+                if (target_power_ < 0)
+                    pwm_angle += 180;
+                set_pwm(pwm_angle);
+            }
+
+            /**
+             * function apply motor controls and to comptue speed
+             * @see Motor::rps()
+             **/
+            void update_control()
+            {
+                /// compute delta since last update
+                position_delta_.stamp = measurement_.stamp - position_control_.stamp;
+                position_delta_.value = car::math::Angle14Bit::difference(measurement_.value, position_control_.value);
+                position_control_ = measurement_;
+                rps_control_.stamp = measurement_.stamp;
+                rps_control_.value = position_delta_.value.get_norm() / position_delta_.stamp_as_sec();
+            }
+
+            /**
+             * function couple or decouple motor
+             * @param on couble on true
+             **/
+            void couple(bool on)
+            {
+                fnc_couple_pwm_(pins_INH_, on);
+            }
+
+        private:
+            std::array<uint8_t, 3> pins_INH_;                                                                      /// H-Bridge inhibitor pins
+            std::array<uint8_t, 3> pins_PWN_;                                                                      /// H-Bridge power (pwm) pins
+            std::array<uint8_t, 3> pins_IS_;                                                                       /// H-Bridge sense pins
+            uint8_t pin_CS_;                                                                                       /// SPI chip select pin
+            car::math::Direction encoder_direction_;                                                               /// encoder counting direction
+            int16_t nr_of_coils_;                                                                                  /// number of coils;
+            int16_t phase_measurement_max_;                                                                        /// maximum number of encoder clicks per phase
+            float target_power_;                                                                                   /// power on the pwm modulation
+            car::math::Value<car::math::Angle14Bit> measurement_;                                                  /// encoder measurement update on every pwm update
+            car::math::Value<car::math::Angle14Bit> position_control_;                                             /// motor position, update on every control update
+            car::math::Value<car::math::Angle14Bit> position_delta_;                                               /// motor position change since last control update
+            car::math::Value<float> rps_control_;                                                                  /// motor speed in rotiations per second update on every control update
+            car::math::AngleDeg phase_offset_;                                                                     /// phase offset between pwm signal and phase_angle in encoder clicks
+            std::array<volatile uint32_t *, 3> pwm_timer_register_;                                                /// timer registers to update on every pwm update
+            std::function<void(uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder_;                    /// function pointer to read moder angle encoder
+            std::function<void(std::array<volatile uint32_t *, 3>, const std::array<float, 3> &)> fnc_update_pwm_; /// function pointer to set pwm register values
+            std::function<void(const std::array<uint8_t, 3> &, bool)> fnc_couple_pwm_;                             /// function to couple or decouble (inhibitor) the motor
+        };
+
+    } // namespace bldc
+} // namespace car
 #endif // CAR_BLDC_MOTOR_H
