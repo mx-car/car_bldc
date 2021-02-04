@@ -13,7 +13,7 @@ class Driver {
         static const uint32_t PWMFrequency = 15000;
         Driver();
         void init(Motor *motor0, Motor *motor1 = NULL);   
-        void update_PWM(Motor *motor, float power = 1.0);    
+        void update_PWM(volatile uint32_t* timer_register[3], float target[3]);    
         void couple(Motor *motor);
         void decouple(Motor *motor);
 

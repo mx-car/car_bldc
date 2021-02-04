@@ -114,12 +114,11 @@ void Driver::init_timer(){
     //FTM0_SC = 0b00101000; //CPWM MODE 0x48 EPWM -> 0x68 0110 1000
 }
 
-void Driver::update_PWM(Motor *motor, float power) {
 
-    uint32_t power_promille = power * 1000.0;
-    uint16_t max_count = power_promille * this->timer_modulo_ / 1000;
-    //uint16_t max_count = this->timer_modulo_;
-    *motor->timer_register[0] = motor->target_PWN[0] * max_count; 
-    *motor->timer_register[1] = motor->target_PWN[1] * max_count; 
-    *motor->timer_register[2] = motor->target_PWN[2] * max_count; 
-}
+void Driver::update_PWM(volatile uint32_t* timer_register[3], float target[3]){
+
+    *timer_register[0] = (target[0] * (float) this->timer_modulo_);  
+    *timer_register[1] = (target[1] * (float) this->timer_modulo_);  
+    *timer_register[2] = (target[2] * (float) this->timer_modulo_); 
+
+} 
