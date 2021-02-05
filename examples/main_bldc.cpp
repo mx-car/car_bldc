@@ -1,6 +1,5 @@
-/*
-  ENCODER
-  @author Markus Bader
+/**
+ * @author Markus Bader <markus.bader@mx-robotics.com>
  */
 
 #include <Arduino.h>

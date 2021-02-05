@@ -1,3 +1,7 @@
+/**
+ * @author Markus Bader <markus.bader@mx-robotics.com>
+ */
+
 #ifndef CAR_BLDC_MOTOR_H
 #define CAR_BLDC_MOTOR_H
 
@@ -102,6 +106,8 @@ namespace car
              **/
             void set_power(float power)
             {
+                if(power > +1)  power = 1;
+                if(power < -1) power = -1;
                 target_power_ = power;
             }
 
@@ -124,10 +130,10 @@ namespace car
             {
                 std::array<float, 3> target_PWN;
                 pwm_angle.normalize();
-
-                target_PWN[0] = (pwm_angle + 0).get_cos() * 0.5 + 0.5 * fabs(target_power_);
-                target_PWN[1] = (pwm_angle + 120).get_cos() * 0.5 + 0.5 * fabs(target_power_);
-                target_PWN[2] = (pwm_angle + 240).get_cos() * 0.5 + 0.5 * fabs(target_power_);
+                float scale = 0.5 * fabs(target_power_);
+                target_PWN[0] = (pwm_angle +   0).get_cos() * scale  + 0.5;
+                target_PWN[1] = (pwm_angle + 120).get_cos() * scale + 0.5;
+                target_PWN[2] = (pwm_angle + 240).get_cos() * scale + 0.5;
 
                 /// compute delta since last update
                 fnc_update_pwm_(pwm_timer_register_, target_PWN);

@@ -1,3 +1,7 @@
+/**
+ * @author Markus Bader <markus.bader@mx-robotics.com>
+ */
+
 #ifndef CAR_BLDC_DRIVER_H
 #define CAR_BLDC_DRIVER_H
 
