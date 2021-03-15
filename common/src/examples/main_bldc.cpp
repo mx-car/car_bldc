@@ -29,8 +29,8 @@ car::bldc::Motor motor1(std::array<uint8_t, 3>({28, 8, 25}),
                         std::array<uint8_t, 3>({A15, A16, A17}), 14, car::math::Direction::COUNTERCLOCKWISE);
 int loop_count = 0;
 
-std::array<car::math::AngleDeg, 2> motor0_flux_offset( {-65   , -65-90});
-std::array<car::math::AngleDeg, 2> motor1_flux_offset( {-80+90, -80   });
+std::array<car::math::AngleDeg, 2> motor0_flux_offset( {-120   , -120-90});
+std::array<car::math::AngleDeg, 2> motor1_flux_offset( {-120+90, -120   });
 uint32_t timer_count;
 car::time::CycleRate cycle_pwm(5);
 car::time::CycleRate cycle_control(100);
