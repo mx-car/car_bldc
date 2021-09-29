@@ -78,12 +78,11 @@ void loop()
     motor0.update_control();
     motor1.update_control();
 
-    float target = 0.1;
+    float target = 5;
     motor0.set_power(motor0_pid.update(-target, motor0.rps()));
     motor1.set_power(motor1_pid.update(target, motor1.rps()));
     sprintf(msg, "target =% 4.3frps, measured =% 4.3frps, u =% 7.6f, measured =% 4.3frps, u =% 7.6f", target, motor0.rps(), motor0_pid.out(), motor1.rps(), motor1_pid.out());
     Serial.println(msg);
-    
   }
   loop_count++;
 }

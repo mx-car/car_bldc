@@ -34,7 +34,7 @@ namespace car
              * @param nr_of_coils number of coils;
              * @param phase_offset phase offset between pwm signal and phase_angle in encoder clicks
              **/
-            void init(int nr_of_coils, const std::array<car::math::AngleDeg, 2> &phase_offsets, std::function<void(uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder, std::function<void(std::array<volatile uint32_t *, 3>, const std::array<float, 3> &)> fnc_update_pwm, std::function<void(const std::array<uint8_t, 3> &, bool)> fnc_couple_pwm)
+            void init(int16_t nr_of_coils, const std::array<car::math::AngleDeg, 2> &phase_offsets, std::function<void(uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder, std::function<void(std::array<volatile uint32_t *, 3>, const std::array<float, 3> &)> fnc_update_pwm, std::function<void(const std::array<uint8_t, 3> &, bool)> fnc_couple_pwm)
             {
                 nr_of_coils_ = nr_of_coils;
                 phase_offsets_ = phase_offsets;
