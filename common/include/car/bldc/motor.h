@@ -37,9 +37,7 @@ namespace car
             void init(int16_t nr_of_coils, const std::array<car::math::AngleDeg, 2> &phase_offsets, std::function<void(uint8_t cs, int16_t &value, uint32_t &stamp)> fnc_read_encoder, std::function<void(std::array<volatile uint32_t *, 3>, const std::array<float, 3> &)> fnc_update_pwm, std::function<void(const std::array<uint8_t, 3> &, bool)> fnc_couple_pwm)
             {
                 nr_of_coils_ = nr_of_coils;
-                phase_offsets_ = phase_offsets;
-                phase_offsets_[0].normalize();
-                phase_offsets_[1].normalize();
+                set_phase_offsets(phase_offsets);
                 fnc_read_encoder_ = fnc_read_encoder;
                 fnc_update_pwm_ = fnc_update_pwm;
                 fnc_couple_pwm_ = fnc_couple_pwm;
@@ -180,6 +178,17 @@ namespace car
             void couple(bool on)
             {
                 fnc_couple_pwm_(pins_INH_, on);
+            }
+
+            /**
+             * function sets phase offset
+             * @param phase_offsets 
+             **/
+            void set_phase_offsets(const std::array<car::math::AngleDeg, 2> &phase_offsets)
+            {
+                phase_offsets_ = phase_offsets;
+                phase_offsets_[0].normalize();
+                phase_offsets_[1].normalize();
             }
 
         private:
